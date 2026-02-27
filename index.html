@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arbeitszeiterfassung - Glassmorphism</title>
+    <!-- jsPDF für PDF-Export hinzufügen -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    <style>
+        /* Grundlegendes Reset und Schriftart */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            min-height: 100vh;
+            /* Angepasst auf O2-Blau Farbpalette */
+            background: linear-gradient(-45deg, #000B42, #0019A5, #0044FF, #0019A5);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
+            color: #ffffff;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 2rem 1rem;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* Animierte Hintergrund-Glaskreise für den 3D-Effekt */
+        .circle {
+            position: fixed;
+            border-radius: 50%;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.02));
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.15);
+            z-index: -1;
+            animation: float 12s infinite ease-in-out alternate;
+        }
+
+        .circle-1 {
+            width: 350px;
+            height: 350px;
+            top: -50px;
+            left: -100px;
+        }
+
+        .circle-2 {
+            width: 450px;
+            height: 450px;
+            bottom: -100px;
+            right: -100px;
+            animation-delay: -6s;
+        }
+
+        @keyframes float {
+            0% { transform: translateY(0px) rotate(0deg) scale(1); }
+            100% { transform: translateY(-40px) rotate(10deg) scale(1.05); }
+        }
+
+        /* Hauptcontainer */
+        .container {
+            width: 100%;
+            max-width: 900px;
+            margin: 0 auto;
+            z-index: 1;
+        }
+
+        .title {
+            text-align: center;
+            font-size: 2.5rem;
+            margin-bottom: 2rem;
+            font-weight: 700;
+            letter-spacing: 1px;
+            text-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Glassmorphism Panel Basisklasse */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.12);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            border-radius: 1.25rem;
+            padding: 2rem;
+            box-shadow: 0 8px 32px 0 rgba(0, 10, 50, 0.4);
+            margin-bottom: 2rem;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .glass-panel:hover {
+            box-shadow: 0 12px 40px 0 rgba(0, 10, 50, 0.5);
+        }
+
+        .panel-title {
+            font-size: 1.5rem;
+            margin-bottom: 1.5rem;
+            font-weight: 600;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+            padding-bottom: 0.5rem;
+            display: inline-block;
+        }
+
+        /* Formular Styling */
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+        }
+
+        .form-group.full-width {
+            grid-column: 1 / -1;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-size: 0.95rem;
+            color: rgba(255, 255, 255, 0.95);
+            font-weight: 500;
+        }
+
+        input, textarea {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 0.75rem;
+            padding: 0.8rem 1rem;
+            color: white;
+            font-family: inherit;
+            font-size: 1rem;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        input:focus, textarea:focus {
+            background: rgba(255, 255, 255, 0.25);
+            border-color: rgba(255, 255, 255, 0.6);
+            box-shadow: 0 0 15px rgba(255, 255, 255, 0.15);
+        }
+
+        ::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        /* Datum/Zeit Kalender-Icon anpassen (Standardmäßig schwarz) */
+        ::-webkit-calendar-picker-indicator {
+            filter: invert(1);
+            cursor: pointer;
+            opacity: 0.8;
+        }
+
+        ::-webkit-calendar-picker-indicator:hover {
+            opacity: 1;
+        }
+
+        /* Buttons */
+        .btn {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.25), rgba(255, 255, 255, 0.05));
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            padding: 0.8rem 1.5rem;
+            border-radius: 0.75rem;
+            color: white;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            margin-top: 1rem;
+        }
+
+        .btn:hover {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0.15));
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-delete {
+            background: rgba(255, 82, 82, 0.3);
+            border-color: rgba(255, 82, 82, 0.5);
+            padding: 0.4rem 0.8rem;
+            font-size: 0.85rem;
+            width: auto;
+            margin-top: 0;
+            border-radius: 0.5rem;
+        }
+
+        .btn-delete:hover {
+            background: rgba(255, 82, 82, 0.5);
+        }
+
+        .btn-export {
+            background: linear-gradient(135deg, rgba(0, 68, 255, 0.4), rgba(0, 25, 165, 0.2));
+            border-color: rgba(0, 100, 255, 0.5);
+            margin-top: 1.5rem;
+        }
+
+        .btn-export:hover {
+            background: linear-gradient(135deg, rgba(0, 85, 255, 0.5), rgba(0, 25, 165, 0.3));
+        }
+
+        /* Nachrichten / Warnungen */
+        .message-box {
+            background: rgba(255, 100, 100, 0.2);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 100, 100, 0.5);
+            padding: 1rem;
+            border-radius: 0.75rem;
+            margin-bottom: 1.5rem;
+            display: none;
+            color: #fff;
+            font-weight: 500;
+        }
+
+        /* Tabelle */
+        .total-time-display {
+            font-size: 1.25rem;
+            margin-bottom: 1rem;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 1rem;
+            border-radius: 0.75rem;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            text-align: center;
+        }
+
+        .table-responsive {
+            overflow-x: auto;
+            border-radius: 0.75rem;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            min-width: 600px; /* Sichert Lesbarkeit auf Mobile */
+        }
+
+        th, td {
+            padding: 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+        }
+
+        th {
+            background: rgba(255, 255, 255, 0.05);
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.85rem;
+            letter-spacing: 1px;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr:hover td {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 2rem;
+            color: rgba(255, 255, 255, 0.7);
+            font-style: italic;
+        }
+
+        /* Responsive Anpassungen */
+        @media (max-width: 768px) {
+            body {
+                padding: 1rem 0.5rem;
+            }
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+            .title {
+                font-size: 2rem;
+            }
+            .glass-panel {
+                padding: 1.25rem;
+            }
+            /* Glaskreise verkleinern für Mobile */
+            .circle-1 {
+                width: 200px;
+                height: 200px;
+                top: -20px;
+                left: -50px;
+            }
+            .circle-2 {
+                width: 250px;
+                height: 250px;
+                bottom: -50px;
+                right: -50px;
+            }
+
+            /* Responsive Tabelle (Card View für Handys) */
+            .table-responsive {
+                border-radius: 0;
+            }
+            table, thead, tbody, th, td, tr {
+                display: block;
+                min-width: auto;
+            }
+            thead tr {
+                display: none; /* Tabellenkopf verstecken */
+            }
+            tr {
+                margin-bottom: 1.2rem;
+                background: rgba(255, 255, 255, 0.05);
+                border-radius: 0.75rem;
+                border: 1px solid rgba(255, 255, 255, 0.15);
+                box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+                overflow: hidden;
+            }
+            td {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                text-align: right;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+                padding: 0.8rem 1rem;
+            }
+            td:last-child {
+                border-bottom: none;
+            }
+            td::before {
+                content: attr(data-label);
+                font-weight: 600;
+                color: rgba(255, 255, 255, 0.7);
+                font-size: 0.85rem;
+                text-transform: uppercase;
+                margin-right: 1rem;
+                text-align: left;
+                flex-shrink: 0;
+            }
+            td.empty-state {
+                display: block;
+                text-align: center;
+            }
+            td.empty-state::before {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Dekorative Hintergrundelemente -->
+    <div class="circle circle-1"></div>
+    <div class="circle circle-2"></div>
+
+    <div class="container">
+        <h1 class="title">Arbeitszeiterfassung</h1>
+
+        <!-- Eingabebereich -->
+        <div class="glass-panel">
+            <h2 class="panel-title">Neuer Eintrag</h2>
+            
+            <div id="message-box" class="message-box"></div>
+
+            <form id="time-form">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="datum">Datum</label>
+                        <input type="date" id="datum" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="pause">Pause (in Minuten)</label>
+                        <input type="number" id="pause" min="0" placeholder="z.B. 30" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="startzeit">Startzeit</label>
+                        <input type="time" id="startzeit" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="endzeit">Endzeit</label>
+                        <input type="time" id="endzeit" required>
+                    </div>
+
+                    <div class="form-group full-width">
+                        <label for="beschreibung">Beschreibung / Projekt</label>
+                        <input type="text" id="beschreibung" placeholder="Woran hast du gearbeitet?">
+                    </div>
+                </div>
+                
+                <button type="submit" class="btn">Zeit erfassen</button>
+            </form>
+        </div>
+
+        <!-- Übersichts- und Listenbereich -->
+        <div class="glass-panel">
+            <h2 class="panel-title">Zeiterfassungen</h2>
+            
+            <div class="total-time-display">
+                Gesamte Arbeitszeit: <strong id="total-time-text">0h 0m</strong>
+            </div>
+
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Datum</th>
+                            <th>Zeitraum</th>
+                            <th>Pause</th>
+                            <th>Netto-Dauer</th>
+                            <th>Beschreibung</th>
+                            <th>Aktion</th>
+                        </tr>
+                    </thead>
+                    <tbody id="entries-body">
+                        <tr>
+                            <td colspan="6" class="empty-state">Noch keine Zeiten erfasst.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <button type="button" class="btn btn-export" id="btn-export-pdf" onclick="exportierePDF()" style="display: none;">Als PDF herunterladen</button>
+        </div>
+    </div>
+
+    <script>
+        // Array zur Speicherung der Einträge im Arbeitsspeicher
+        let zeitEintraege = [];
+
+        // DOM Elemente
+        const form = document.getElementById('time-form');
+        const entriesBody = document.getElementById('entries-body');
+        const totalTimeText = document.getElementById('total-time-text');
+        const messageBox = document.getElementById('message-box');
+
+        // Setze das heutige Datum als Standardwert
+        document.getElementById('datum').valueAsDate = new Date();
+        document.getElementById('pause').value = 0;
+
+        // Hilfsfunktion: Datum formatieren (JJJJ-MM-TT zu TT.MM.JJJJ)
+        function formatiereDatum(datumString) {
+            const teile = datumString.split('-');
+            if (teile.length === 3) {
+                return `${teile[2]}.${teile[1]}.${teile[0]}`;
+            }
+            return datumString;
+        }
+
+        // Hilfsfunktion: Fehlermeldung anzeigen
+        function zeigeNachricht(nachricht, typ = 'error') {
+            messageBox.textContent = nachricht;
+            messageBox.style.display = 'block';
+            
+            if(typ === 'error') {
+                messageBox.style.background = 'rgba(255, 100, 100, 0.2)';
+                messageBox.style.borderColor = 'rgba(255, 100, 100, 0.5)';
+            } else {
+                messageBox.style.background = 'rgba(100, 255, 100, 0.2)';
+                messageBox.style.borderColor = 'rgba(100, 255, 100, 0.5)';
+            }
+
+            // Verstecke Nachricht nach 4 Sekunden automatisch
+            setTimeout(() => {
+                messageBox.style.display = 'none';
+            }, 4000);
+        }
+
+        // Formular Absenden-Event
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const datum = document.getElementById('datum').value;
+            const startzeit = document.getElementById('startzeit').value;
+            const endzeit = document.getElementById('endzeit').value;
+            const pause = parseInt(document.getElementById('pause').value) || 0;
+            const beschreibung = document.getElementById('beschreibung').value;
+
+            // Zeitberechnung
+            const startObj = new Date(`1970-01-01T${startzeit}:00`);
+            let endObj = new Date(`1970-01-01T${endzeit}:00`);
+            
+            // Falls Endzeit vor Startzeit liegt (z.B. Nachtschicht)
+            if (endObj < startObj) {
+                endObj.setDate(endObj.getDate() + 1);
+            }
+
+            const differenzMs = endObj - startObj;
+            const differenzMinutenTotal = Math.floor(differenzMs / 60000);
+            const nettoMinuten = differenzMinutenTotal - pause;
+
+            // Validierung
+            if (nettoMinuten < 0) {
+                zeigeNachricht("Die Pause kann nicht länger als die anwesende Zeit sein!");
+                return;
+            }
+
+            // Dauer formatieren
+            const stunden = Math.floor(nettoMinuten / 60);
+            const minuten = nettoMinuten % 60;
+            const dauerString = `${stunden}h ${minuten}m`;
+
+            // Neuen Eintrag erstellen
+            const neuerEintrag = {
+                id: Date.now(), // Eindeutige ID generieren
+                datum: datum,
+                startzeit: startzeit,
+                endzeit: endzeit,
+                pause: pause,
+                nettoMinuten: nettoMinuten,
+                dauerString: dauerString,
+                beschreibung: beschreibung || '-'
+            };
+
+            // Zum Array hinzufügen und Ansicht aktualisieren
+            zeitEintraege.push(neuerEintrag);
+            
+            // Nach Datum absteigend sortieren
+            zeitEintraege.sort((a, b) => new Date(b.datum) - new Date(a.datum));
+
+            aktualisiereAnsicht();
+            
+            // Formular zurücksetzen, aber Datum behalten
+            const aktuellesDatum = document.getElementById('datum').value;
+            form.reset();
+            document.getElementById('datum').value = aktuellesDatum;
+            document.getElementById('pause').value = 0;
+            
+            zeigeNachricht("Eintrag erfolgreich hinzugefügt!", 'success');
+        });
+
+        // Eintrag löschen
+        function loescheEintrag(id) {
+            zeitEintraege = zeitEintraege.filter(eintrag => eintrag.id !== id);
+            aktualisiereAnsicht();
+        }
+
+        // Ansicht (Tabelle und Gesamtsumme) aktualisieren
+        function aktualisiereAnsicht() {
+            // Tabelle rendern
+            entriesBody.innerHTML = '';
+            const btnExport = document.getElementById('btn-export-pdf');
+
+            if (zeitEintraege.length === 0) {
+                entriesBody.innerHTML = `<tr><td colspan="6" class="empty-state">Noch keine Zeiten erfasst.</td></tr>`;
+                totalTimeText.textContent = "0h 0m";
+                btnExport.style.display = 'none';
+                return;
+            }
+
+            btnExport.style.display = 'block';
+            let gesamtMinuten = 0;
+
+            zeitEintraege.forEach(eintrag => {
+                gesamtMinuten += eintrag.nettoMinuten;
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td data-label="Datum">${formatiereDatum(eintrag.datum)}</td>
+                    <td data-label="Zeitraum">${eintrag.startzeit} - ${eintrag.endzeit}</td>
+                    <td data-label="Pause">${eintrag.pause} Min</td>
+                    <td data-label="Netto-Dauer"><strong>${eintrag.dauerString}</strong></td>
+                    <td data-label="Beschreibung">${eintrag.beschreibung}</td>
+                    <td data-label="Aktion">
+                        <button class="btn btn-delete" onclick="loescheEintrag(${eintrag.id})">Löschen</button>
+                    </td>
+                `;
+                entriesBody.appendChild(tr);
+            });
+
+            // Gesamtzeit formatieren
+            const gesamtStunden = Math.floor(gesamtMinuten / 60);
+            const restMinuten = gesamtMinuten % 60;
+            totalTimeText.textContent = `${gesamtStunden}h ${restMinuten}m`;
+        }
+
+        // Als PDF exportieren
+        function exportierePDF() {
+            if (zeitEintraege.length === 0) {
+                zeigeNachricht("Keine Einträge zum Exportieren vorhanden.");
+                return;
+            }
+
+            // jsPDF initialisieren (aus window Objekt, da via CDN geladen)
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+
+            // Titel und Gesamtzeit hinzufügen
+            doc.setFontSize(18);
+            doc.text("Arbeitszeiten Übersicht", 14, 20);
+            
+            doc.setFontSize(12);
+            doc.text("Gesamte Arbeitszeit: " + totalTimeText.textContent, 14, 30);
+
+            // Daten für die Tabelle vorbereiten (Aktionen-Spalte weglassen)
+            const tableData = zeitEintraege.map(eintrag => [
+                formatiereDatum(eintrag.datum),
+                `${eintrag.startzeit} - ${eintrag.endzeit}`,
+                `${eintrag.pause} Min`,
+                eintrag.dauerString,
+                eintrag.beschreibung
+            ]);
+
+            // Tabelle generieren
+            doc.autoTable({
+                startY: 35,
+                head: [['Datum', 'Zeitraum', 'Pause', 'Dauer', 'Beschreibung']],
+                body: tableData,
+                theme: 'grid',
+                // Kopfzeile des PDFs an O2 Blau anpassen (#0019A5 = rgb(0, 25, 165))
+                headStyles: { fillColor: [0, 25, 165] },
+                styles: { fontSize: 10 }
+            });
+
+            // PDF speichern - Optimiert für mobile Geräte (insbesondere iPhone)
+            const pdfBlob = doc.output('blob');
+            const blobUrl = URL.createObjectURL(pdfBlob);
+
+            const a = document.createElement('a');
+            a.href = blobUrl;
+            a.download = 'Arbeitszeiten.pdf';
+            // Wichtig für iOS: Erlaubt Safari, die PDF als Vorschau zu öffnen, 
+            // falls der direkte Download blockiert wird.
+            a.target = '_blank'; 
+            
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+
+            // Speicherplatz nach kurzer Verzögerung wieder freigeben
+            setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+        }
+    </script>
+</body>
+</html>
