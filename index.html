@@ -15,13 +15,15 @@
             padding: 0;
         }
 
+        html {
+            height: 100%;
+            background-color: #000B42; /* Sicherer Fallback-Hintergrund für iPhones */
+        }
+
         body {
             font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             min-height: 100vh;
-            /* Angepasst auf O2-Blau Farbpalette */
-            background: linear-gradient(-45deg, #000B42, #0019A5, #0044FF, #0019A5);
-            background-size: 400% 400%;
-            animation: gradientBG 15s ease infinite;
+            min-height: -webkit-fill-available; /* Wichtig für korrekte Höhe auf iOS Safari */
             color: #ffffff;
             display: flex;
             justify-content: center;
@@ -29,6 +31,20 @@
             padding: 2rem 1rem;
             position: relative;
             overflow-x: hidden;
+            /* Der animierte Hintergrund wurde für iPhone-Kompatibilität in .bg-animation ausgelagert */
+        }
+
+        /* NEU: Separater Container für den Hintergrund (behebt iOS White-Screen Bug) */
+        .bg-animation {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(-45deg, #000B42, #0019A5, #0044FF, #0019A5);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
+            z-index: -2;
         }
 
         @keyframes gradientBG {
@@ -129,6 +145,8 @@
         }
 
         input, textarea {
+            -webkit-appearance: none; /* WICHTIG: Überschreibt Apple's weiße Standard-Eingabefelder */
+            appearance: none;
             width: 100%;
             background: rgba(255, 255, 255, 0.1);
             border: 1px solid rgba(255, 255, 255, 0.3);
@@ -163,6 +181,8 @@
 
         /* Buttons */
         .btn {
+            -webkit-appearance: none; /* Verhindert ebenfalls Apple iOS Default Styles für Buttons */
+            appearance: none;
             background: linear-gradient(135deg, rgba(255, 255, 255, 0.25), rgba(255, 255, 255, 0.05));
             border: 1px solid rgba(255, 255, 255, 0.4);
             padding: 0.8rem 1.5rem;
@@ -327,12 +347,12 @@
                 margin-bottom: 1.5rem;
             }
             
-            /* Größere Touch-Flächen für Handys (Apple Best Practice) */
+            /* Größere Touch-Flächen für Handys */
             input, textarea, .btn {
                 min-height: 48px;
             }
 
-            /* Glaskreise verkleinern für Mobile, damit sie nicht überlappen */
+            /* Glaskreise verkleinern */
             .circle-1 { 
                 width: 150px; 
                 height: 150px; 
@@ -346,7 +366,7 @@
                 right: -20px; 
             }
 
-            /* Header-Bereich (Titel & Abmelden) optimieren */
+            /* Header-Bereich */
             .header-flex { 
                 flex-direction: column; 
                 gap: 0.8rem; 
@@ -362,7 +382,7 @@
                 padding: 0.8rem;
             }
 
-            /* Responsive Tabelle (Optimierte Card View für Handys) */
+            /* Responsive Tabelle */
             .table-responsive { 
                 border-radius: 0; 
             }
@@ -372,7 +392,7 @@
                 width: 100%;
             }
             thead tr { 
-                display: none; /* Tabellenkopf verstecken */
+                display: none; 
             }
             tr {
                 margin-bottom: 1.2rem;
@@ -384,12 +404,12 @@
             }
             td {
                 display: flex;
-                flex-direction: column; /* Auf Mobile untereinander für lange Texte! */
+                flex-direction: column; 
                 align-items: flex-start;
                 text-align: left;
                 border-bottom: 1px solid rgba(255, 255, 255, 0.08);
                 padding: 0.6rem 0.5rem;
-                word-break: break-word; /* Verhindert das Ausbrechen langer Wörter */
+                word-break: break-word; 
             }
             td:last-child { 
                 border-bottom: none; 
@@ -400,7 +420,7 @@
                 color: rgba(255, 255, 255, 0.6);
                 font-size: 0.75rem;
                 text-transform: uppercase;
-                margin-bottom: 0.3rem; /* Abstand zwischen Label und Wert */
+                margin-bottom: 0.3rem; 
                 text-align: left;
                 display: block;
             }
@@ -416,6 +436,9 @@
     </style>
 </head>
 <body>
+
+    <!-- NEU: Ausgelagerter animierter Hintergrund -->
+    <div class="bg-animation"></div>
 
     <div class="circle circle-1"></div>
     <div class="circle circle-2"></div>
@@ -536,16 +559,11 @@
     </div>
 
     <script>
-        // =========================================================================
-        // WICHTIG: Hier musst du die URL eintragen, die du von Render.com bekommst!
-        // Aktuell steht hier ein Platzhalter. Ändere ihn zu deiner Live-Backend-URL.
-        // Beispiel: const API_BASE = 'https://meine-zeiterfassung.onrender.com/api';
-        // =========================================================================
         const API_BASE = 'https://arbeitszeiten-bm14.onrender.com/api'; 
         
         let zeitEintraege = [];
-        let currentUser = null; // Speichert Name und ID
-        let authToken = null;   // Speichert das JWT Token
+        let currentUser = null; 
+        let authToken = null;   
 
         const authView = document.getElementById('auth-view');
         const loginContainer = document.getElementById('login-container');
@@ -559,7 +577,6 @@
         document.getElementById('datum').valueAsDate = new Date();
         document.getElementById('pause').value = 0;
 
-        // Hilfsfunktionen UI
         function toggleAuth(view) {
             if(view === 'register') {
                 loginContainer.style.display = 'none';
@@ -584,11 +601,6 @@
             setTimeout(() => { messageBox.style.display = 'none'; }, 4000);
         }
 
-        // ==========================================
-        // AUTHENTIFIZIERUNGS LOGIK (JWT)
-        // ==========================================
-        
-        // Prüft, ob es noch ein gültiges Token in der Session gibt
         function checkSession() {
             const token = sessionStorage.getItem('authToken');
             const username = sessionStorage.getItem('authUsername');
@@ -599,7 +611,6 @@
             }
         }
 
-        // Registrierung
         document.getElementById('register-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const username = document.getElementById('reg-username').value;
@@ -624,7 +635,6 @@
             }
         });
 
-        // Login
         document.getElementById('login-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const email = document.getElementById('login-email').value;
@@ -640,7 +650,6 @@
                 const data = await response.json();
                 if (!response.ok) throw new Error(data.error || 'Login fehlgeschlagen');
 
-                // Token und Username speichern
                 authToken = data.token;
                 currentUser = data.username;
                 sessionStorage.setItem('authToken', authToken);
@@ -670,24 +679,18 @@
             authView.style.display = 'none';
             dashboardView.style.display = 'block';
             currentUserDisplay.textContent = currentUser;
-            ladeEintraegeAusDB(); // Lädt die Daten mit dem neuen Token
+            ladeEintraegeAusDB(); 
         }
 
-        // ==========================================
-        // API KOMMUNIKATION (Mit Token-Header!)
-        // ==========================================
-
-        // Header-Funktion für geschützte Routen
         function getAuthHeaders() {
             return {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${authToken}` // Hier schicken wir den digitalen Ausweis!
+                'Authorization': `Bearer ${authToken}` 
             };
         }
 
         async function ladeEintraegeAusDB() {
             try {
-                // Sende GET Request MIT dem Authorization Header
                 const response = await fetch(`${API_BASE}/entries`, {
                     method: 'GET',
                     headers: getAuthHeaders()
@@ -744,7 +747,6 @@
             const payload = { datum, startzeit, endzeit, pause_minuten: pause, netto_minuten: nettoMinuten, beschreibung };
 
             try {
-                // Sende POST Request MIT dem Authorization Header
                 const response = await fetch(`${API_BASE}/entries`, {
                     method: 'POST',
                     headers: getAuthHeaders(),
@@ -773,7 +775,6 @@
         async function loescheEintrag(id) {
             if(!confirm("Eintrag wirklich löschen?")) return;
             try {
-                // Sende DELETE Request MIT dem Authorization Header
                 const response = await fetch(`${API_BASE}/entries/${id}`, {
                     method: 'DELETE',
                     headers: getAuthHeaders()
@@ -786,9 +787,6 @@
             }
         }
 
-        // ==========================================
-        // UI & EXPORT
-        // ==========================================
         function formatiereDatum(datumString) {
             const teile = datumString.split('T')[0].split('-');
             if (teile.length === 3) return `${teile[2]}.${teile[1]}.${teile[0]}`;
@@ -868,7 +866,6 @@
             setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
         }
 
-        // Startpunkt
         checkSession();
 
     </script>
